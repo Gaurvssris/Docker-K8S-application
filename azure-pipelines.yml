@@ -13,25 +13,64 @@ pool:
 variables:
   acrName: acrprod9838
   imageName: july-calendar
-  tag: $(Build.BuildId)
+  imageTag: $(Build.BuildId)
 
 steps:
 
+# Checkout Source Code
 - checkout: self
+  displayName: Checkout Source Code
 
+# Display Versions
+- powershell: |
+    Write-Host "===== Docker Version ====="
+    docker --version
+
+    Write-Host "===== Azure CLI Version ====="
+    az --version
+  displayName: Check Docker & Azure CLI
+
+# Login Azure, Build Image & Push to ACR
 - task: AzureCLI@2
-  displayName: Login to Azure and Push Docker Image
+  displayName: Build and Push Docker Image to ACR
   inputs:
-    azureSubscription: Devopsadvancesc
-    scriptType: bash
-    scriptLocation: inlineScript
+    azureSubscription: 'Devopsadvancesc'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
     inlineScript: |
+
+      Write-Host "===== Login to ACR ====="
       az acr login --name $(acrName)
 
-      docker build -t $(acrName).azurecr.io/$(imageName):$(tag) .
+      Write-Host "===== Docker Build ====="
+      docker build -t $(acrName).azurecr.io/$(imageName):$(imageTag) .
 
-      docker tag $(acrName).azurecr.io/$(imageName):$(tag) $(acrName).azurecr.io/$(imageName):latest
+      Write-Host "===== Docker Tag Latest ====="
+      docker tag $(acrName).azurecr.io/$(imageName):$(imageTag) $(acrName).azurecr.io/$(imageName):latest
 
-      docker push $(acrName).azurecr.io/$(imageName):$(tag)
+      Write-Host "===== Push BuildId Tag ====="
+      docker push $(acrName).azurecr.io/$(imageName):$(imageTag)
 
+      Write-Host "===== Push Latest Tag ====="
       docker push $(acrName).azurecr.io/$(imageName):latest
+
+      Write-Host "===== Images in Local Docker ====="
+      docker images
+
+# Verify Image in ACR
+- task: AzureCLI@2
+  displayName: Verify ACR Repository
+  inputs:
+    azureSubscription: 'Devopsadvancesc'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+
+      az acr repository list `
+      --name $(acrName) `
+      --output table
+
+      az acr repository show-tags `
+      --name $(acrName) `
+      --repository $(imageName) `
+      --output table
