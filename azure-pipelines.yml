@@ -17,50 +17,18 @@ variables:
   acrLoginServer: 'acrprod9838.azurecr.io'
   imageName: 'july-calendar'
   imageTag: '$(Build.BuildId)'
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  buildContext: '$(Build.SourcesDirectory)'
 
 steps:
 - checkout: self
   displayName: 'Checkout Source Code'
 
 - task: PowerShell@2
-  displayName: 'Check Docker & Azure CLI'
+  displayName: 'Find Dockerfile Location'
   inputs:
     targetType: 'inline'
     script: |
-      Write-Host "Docker Version:"
-      docker --version
-      Write-Host "Azure CLI Version:"
-      az --version
+      Write-Host "Listing all files in source directory:"
+      Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Force | Select-Object FullName
 
-- task: AzureCLI@2
-  displayName: 'Build and Push Docker Image'
-  inputs:
-    azureSubscription: 'Devopsadvancesc'
-    scriptType: 'ps'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      Write-Host "Login to ACR"
-      az acr login --name $(acrName)
-
-      Write-Host "Checking Dockerfile"
-      if (-Not (Test-Path "$(dockerfilePath)")) {
-        Write-Error "Dockerfile not found at $(dockerfilePath)"
-        exit 1
-      }
-      Get-ChildItem "$(buildContext)"
-
-      Write-Host "Building Image"
-      docker build -f "$(dockerfilePath)" -t "$(acrLoginServer)/$(imageName):$(imageTag)" "$(buildContext)"
-
-      Write-Host "Tagging as latest"
-      docker tag "$(acrLoginServer)/$(imageName):$(imageTag)" "$(acrLoginServer)/$(imageName):latest"
-
-      Write-Host "Pushing build id tag"
-      docker push "$(acrLoginServer)/$(imageName):$(imageTag)"
-
-      Write-Host "Pushing latest tag"
-      docker push "$(acrLoginServer)/$(imageName):latest"
-
-      Write-Host "Done"
+      Write-Host "Searching for Dockerfile specifically:"
+      Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Filter "Dockerfile*" -Force | Select-Object FullName
