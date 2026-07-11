@@ -17,18 +17,22 @@ variables:
   acrLoginServer: 'acrprod9838.azurecr.io'
   imageName: 'july-calendar'
   imageTag: '$(Build.BuildId)'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'   # ⚠️ apna actual Dockerfile path daalo
+  buildContext: '$(Build.SourcesDirectory)'                 # ⚠️ Dockerfile jis folder mein hai
+  containerName: 'july-calendar-app'
+  hostPort: '8080'      # browser mein yeh port khologe
+  containerPort: '80'   # ⚠️ apni app ka actual port daalo (Dockerfile ke EXPOSE se check karo)
 
 steps:
 - checkout: self
   displayName: 'Checkout Source Code'
 
 - task: PowerShell@2
-  displayName: 'Find Dockerfile Location'
+  displayName: 'Check Docker & Azure CLI'
   inputs:
     targetType: 'inline'
     script: |
-      Write-Host "Listing all files in source directory:"
-      Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Force | Select-Object FullName
-
-      Write-Host "Searching for Dockerfile specifically:"
-      Get-ChildItem -Path "$(Build.SourcesDirectory)" -Recurse -Filter "Dockerfile*" -Force | Select-Object FullName
+      Write-Host "Docker Version:"
+      docker --version
+      Write-Host "Azure CLI Version:"
+      az --version
