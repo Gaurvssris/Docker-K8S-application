@@ -11,32 +11,27 @@ pool:
   name: Devopsadvanceagent
 
 variables:
-  imageRepository: july-calendar
+  acrName: acrprod9838
+  imageName: july-calendar
   tag: $(Build.BuildId)
 
 steps:
 
-# Checkout Code
 - checkout: self
 
-# Build Docker Image
-- task: Docker@2
-  displayName: Build Docker Image
+- task: AzureCLI@2
+  displayName: Login to Azure and Push Docker Image
   inputs:
-    command: build
-    repository: $(imageRepository)
-    Dockerfile: Dockerfile
-    tags: |
-      $(tag)
-      latest
+    azureSubscription: Devopsadvancesc
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      az acr login --name $(acrName)
 
-# Push Docker Image to ACR
-- task: Docker@2
-  displayName: Push Docker Image
-  inputs:
-    command: push
-    repository: $(imageRepository)
-    containerRegistry: ACR-Service-Connection
-    tags: |
-      $(tag)
-      latest
+      docker build -t $(acrName).azurecr.io/$(imageName):$(tag) .
+
+      docker tag $(acrName).azurecr.io/$(imageName):$(tag) $(acrName).azurecr.io/$(imageName):latest
+
+      docker push $(acrName).azurecr.io/$(imageName):$(tag)
+
+      docker push $(acrName).azurecr.io/$(imageName):latest
