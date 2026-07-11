@@ -1,0 +1,42 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+
+trigger:
+- main
+
+pool:
+  name: Devopsadvanceagent
+
+variables:
+  imageRepository: july-calendar
+  tag: $(Build.BuildId)
+
+steps:
+
+# Checkout Code
+- checkout: self
+
+# Build Docker Image
+- task: Docker@2
+  displayName: Build Docker Image
+  inputs:
+    command: build
+    repository: $(imageRepository)
+    Dockerfile: Dockerfile
+    tags: |
+      $(tag)
+      latest
+
+# Push Docker Image to ACR
+- task: Docker@2
+  displayName: Push Docker Image
+  inputs:
+    command: push
+    repository: $(imageRepository)
+    containerRegistry: ACR-Service-Connection
+    tags: |
+      $(tag)
+      latest
